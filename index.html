@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Мини-аудиоплеер</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#0f1220; color:#e7e9ee; margin:0; padding:24px; }
+    .player { max-width: 420px; margin: 40px auto; background:#171b2e; border-radius:16px; padding:20px; box-shadow: 0 8px 24px rgb(0 0 0 / 35%); }
+    .info { margin-bottom: 12px; }
+    .song-title { font-size: 20px; font-weight: 700; }
+    .artist-name { opacity:.8; margin-top: 2px; }
+    .controls { display:flex; gap: 10px; justify-content:center; margin: 16px 0; }
+    .controls button { font-size: 22px; padding:10px 14px; border:0; border-radius:12px; background:#222747; color:#e7e9ee; cursor:pointer; }
+    .controls button:active { transform: scale(0.98); }
+    .time { display:flex; align-items:center; gap:10px; }
+    #progress { flex:1; appearance:none; height:6px; border-radius:999px; background:#2a2f57; }
+    #progress::-webkit-slider-thumb { appearance:none; width:14px; height:14px; border-radius:50%; background:#8aa0ff; cursor:pointer; }
+    #currentTime, #duration { font-variant-numeric: tabular-nums; opacity:.9; min-width:46px; text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="player">
+    <div class="info">
+      <div class="song-title">—</div>
+      <div class="artist-name">—</div>
+    </div>
+
+    <audio id="audio" preload="metadata"></audio>
+
+    <div class="controls">
+      <button id="prev" aria-label="Предыдущий трек">⏮️</button>
+      <button id="play" aria-label="Играть/Пауза">▶️</button>
+      <button id="next" aria-label="Следующий трек">⏭️</button>
+    </div>
+
+    <div class="time">
+      <span id="currentTime">0:00</span>
+      <input id="progress" type="range" min="0" value="0" step="1">
+      <span id="duration">0:00</span>
+    </div>
+  </div>
+
+  <script>
+    const audio = document.getElementById("audio");
+    const title = document.querySelector(".song-title");
+    const artist = document.querySelector(".artist-name");
+    const playBtn = document.getElementById("play");
+    const prevBtn = document.getElementById("prev");
+    const nextBtn = document.getElementById("next");
+    const currentTimeEl = document.getElementById("currentTime");
+    const durationEl = document.getElementById("duration");
+    const progress = document.getElementById("progress");
+
+    const songs = [
+      { name: "oqibat.mp3",  title: "Oqibat",  artist: "Janze" },
+      { name: "seychas.mp3", title: "Сейчас", artist: "Монатик" },
+      { name: "song3.mp3",   title: "Track 3", artist: "Unknown Artist" }
+    ];
+
+    let songIndex = 0;
+
+    function loadSong(i){
+      const s = songs[i];
+      audio.src = "music/" + s.name;
+      title.textContent = s.title;
+      artist.textContent = s.artist;
+      playBtn.textContent = "▶️";
+      currentTimeEl.textContent = "0:00";
+      durationEl.textContent = "0:00";
+      progress.value = 0;
+      progress.max = 0;
+    }
+
+    function playPause(){
+      if (audio.paused) audio.play(); else audio.pause();
+    }
+
+    function prevSong(){
+      songIndex = (songIndex - 1 + songs.length) % songs.length;
+      loadSong(songIndex);
+      audio.play();
+    }
+
+    function nextSong(){
+      songIndex = (songIndex + 1) % songs.length;
+      loadSong(songIndex);
+      audio.play();
+    }
+
+    // События кнопок
+    playBtn.addEventListener("click", playPause);
+    prevBtn.addEventListener("click", prevSong);
+    nextBtn.addEventListener("click", nextSong);
+
+    // Синхронизация и время
+    audio.addEventListener("play",  ()=>{ playBtn.textContent = "⏸️"; });
+    audio.addEventListener("pause", ()=>{ playBtn.textContent = "▶️"; });
+
+    audio.addEventListener("timeupdate", ()=>{
+      if (!isFinite(audio.duration)) return;
+      currentTimeEl.textContent = formatTime(audio.currentTime);
+      progress.value = Math.floor(audio.currentTime);
+    });
+
+    audio.addEventListener("loadedmetadata", ()=>{
+      durationEl.textContent = formatTime(audio.duration);
+      progress.max = Math.floor(audio.duration);
+    });
+
+    audio.addEventListener("ended", nextSong);
+
+    audio.addEventListener("error", ()=>{
+      alert("Не удалось загрузить: " + (songs[songIndex]?.name || "") + "\nПроверь путь /music и имя файла.");
+      nextSong();
+    });
+
+    // Перемотка
+    progress.addEventListener("input", ()=>{
+      audio.currentTime = progress.value;
+    });
+
+    function formatTime(t){
+      if (!isFinite(t)) return "0:00";
+      const m = Math.floor(t / 60);
+      const s = Math.floor(t % 60).toString().padStart(2, "0");
+      return m + ":" + s;
+    }
+
+    loadSong(songIndex);
+  </script>
+</body>
+</html>
